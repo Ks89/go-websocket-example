@@ -7,28 +7,39 @@ import (
 	"net/http"
 )
 
+
+// use postman
+// 1. connect to the websocket to localhost:8080/ws
+// 2. get request to  localhost:8080/send-example
+// 3. see websocket output in postman. You should be able to see the message send from the server via send method
+
 var ids []string
 
 func send() {
 	hubInstance := getInstance()
 	fmt.Println("ids: ", ids)
-	res0 := hubInstance.sendToClient(ids[0], Message{Type: 1, Body: "only to user 1"})
-	if res0 {
-		fmt.Println("Message 0 sent")
+	if len(ids) != 0 {
+		res0 := hubInstance.sendToClient(ids[0], Message{Type: 1, Body: "only to user 1"})
+		if res0 {
+			fmt.Println("Message 0 sent")
+		}
 	}
-	res1 := hubInstance.sendToClient(ids[1], Message{Type: 2, Body: "only to user 2"})
-	if res1 {
-		fmt.Println("Message 1 sent")
+	if len(ids) > 1 {
+		res1 := hubInstance.sendToClient(ids[1], Message{Type: 2, Body: "only to user 2"})
+		if res1 {
+			fmt.Println("Message 1 sent")
+		}
 	}
 }
 
 // serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func serveWs(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	hub := getInstance()
 	// create a new client with data received from HTTP request
 	// in this case to do a basic example I generate a random UUID
 	// to identify this client
@@ -64,13 +75,13 @@ func sendExample(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	hub := getInstance()
-	go hub.run()
+	hubInstance := getInstance()
+	go hubInstance.run()
 
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/send-example", sendExample)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		serveWs(w, r)
 	})
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
